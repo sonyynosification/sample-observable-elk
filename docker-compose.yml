@@ -1,0 +1,47 @@
+version: '3.8'
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.1
+    restart: always
+    environment:
+      - discovery.type=single-node
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 1G
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.15.1
+    volumes:
+      - ./.docker/logstash/config:/usr/share/logstash/config
+      - ./.docker/logstash/pipeline:/usr/share/logstash/pipeline
+    ports:
+      - "5000:5000"
+      - "9600:9600"
+    command: [ "logstash", "-f", "/usr/share/logstash/pipeline/logstash.conf" ]
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.15.1
+    ports:
+      - "5601:5601"
+
+  apm-server:
+    image: docker.elastic.co/apm/apm-server:7.15.1
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - APM_SERVER_HOST=0.0.0.0:8200
+    volumes:
+      - ./.docker/apm-server/config:/usr/share/apm-server/config
+      - ./.docker/apm-server/data:/usr/share/apm-server/data
+    ports:
+      - "8200:8200"
+volumes:
+  esdata:
